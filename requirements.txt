@@ -1,0 +1,9 @@
+black
+flake8
+loguru
+mkdocs
+pip
+python-dotenv
+tqdm
+typer
+-e .
