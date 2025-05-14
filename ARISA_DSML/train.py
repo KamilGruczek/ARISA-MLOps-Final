@@ -76,13 +76,6 @@ def run_hyperopt(X_train:pd.DataFrame, y_train:pd.DataFrame, test_size:float=0.2
 def train_cv(X_train:pd.DataFrame, y_train:pd.DataFrame, params:dict)->str|Path:  # noqa: PLR0913
     """Do cross-validated training."""
 
-    param_grid = {
-        'n_estimators': [10, 100, 200],
-        'max_depth': [2, 10, 20, 30],
-        'min_samples_split': [2, 5],
-        'min_samples_leaf': [1, 2]
-    }
-
     random_search = RandomizedSearchCV(
         estimator=RandomForestRegressor(random_state=42),
         param_distributions=params,
