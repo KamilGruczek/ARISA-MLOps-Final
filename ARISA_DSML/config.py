@@ -25,3 +25,8 @@ REPORTS_DIR = PROJ_ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
 
 MODEL_NAME = "wind-power-generation-forecasting"
+
+features = ['Year', 'Month', 'temperature_2m', 'relativehumidity_2m', 'dewpoint_2m', 'windspeed_10m', 'windspeed_100m',
+            'winddirection_10m', 'winddirection_100m', 'windgusts_10m']
+
+target = 'Power'
