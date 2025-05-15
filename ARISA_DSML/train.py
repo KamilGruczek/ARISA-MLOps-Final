@@ -34,16 +34,18 @@ def run_hyperopt(X_train:pd.DataFrame, y_train:pd.DataFrame, test_size:float=0.2
 
         def objective(trial:optuna.trial.Trial)->float:
             with mlflow.start_run(nested=True):
-                n_estimators = trial.suggest_int("n_estimators", 10, 200, log=True)
-                max_depth = trial.suggest_int("max_depth", 2, 32)
-                min_samples_split = trial.suggest_int("min_samples_split", 2, 10)
-                min_samples_leaf = trial.suggest_int("min_samples_leaf", 1, 10)
+                params = {
+                    "n_estimators": trial.suggest_int("n_estimators", 10, 200, log=True),
+                    "max_depth": trial.suggest_int("max_depth", 2, 32),
+                    "min_samples_split": trial.suggest_int("min_samples_split", 2, 10),
+                    "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 10),
+                }
 
                 model = RandomForestRegressor(
-                    n_estimators=n_estimators,
-                    max_depth=max_depth,
-                    min_samples_split=min_samples_split,
-                    min_samples_leaf=min_samples_leaf,
+                    n_estimators=params["n_estimators"],
+                    max_depth=params["max_depth"],
+                    min_samples_split=params["min_samples_split"],
+                    min_samples_leaf=params["min_samples_leaf"],
                     random_state=42,
                 )
                 model.fit(X_train_opt, y_train_opt)
@@ -73,8 +75,15 @@ def run_hyperopt(X_train:pd.DataFrame, y_train:pd.DataFrame, test_size:float=0.2
     return best_params_path
 
 
-def train_cv(X_train:pd.DataFrame, y_train:pd.DataFrame, params:dict)->str|Path:  # noqa: PLR0913
+def train_cv(X_train:pd.DataFrame, y_train:pd.DataFrame)->str|Path:
     """Do cross-validated training."""
+
+    params = {
+        'n_estimators': [10, 100, 200],
+        'max_depth': [2, 10, 20, 30],
+        'min_samples_split': [2, 5],
+        'min_samples_leaf': [1, 2]
+    }
 
     random_search = RandomizedSearchCV(
         estimator=RandomForestRegressor(random_state=42),
@@ -123,14 +132,14 @@ def train(X_train:pd.DataFrame, y_train:pd.DataFrame,
         MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
         model_path = MODELS_DIR / f"{artifact_name}.cbm"
-        model.save_model(model_path)
+        joblib.dump(model, model_path)
         mlflow.log_artifact(model_path)
         cv_metric_mean = cv_results["mean_test_score"].mean()
         mlflow.log_metric("score_cv_mean", cv_metric_mean)
 
         # Log the model
         model_info = mlflow.sklearn.log_model(
-            cb_model=model,
+            sk_model=model,
             artifact_path=artifact_name,
             input_example=X_train,
             registered_model_name=MODEL_NAME,
@@ -195,9 +204,9 @@ def train(X_train:pd.DataFrame, y_train:pd.DataFrame,
 
 def plot_error_scatter(  # noqa: PLR0913
         df_plot:pd.DataFrame,
-        x:str="iterations",
-        y:str="test-score-mean",
-        err:str="test-score-std",
+        x:str="iteration",
+        y:str="mean_test_score",
+        err:str="std_test_score",
         name:str="",
         title:str="",
         xtitle:str="",
@@ -276,18 +285,18 @@ if __name__=="__main__":
     df_train = pd.read_csv(PROCESSED_DATA_DIR / "Location1.csv")
 
     y_train = df_train.pop(target)
-    X_train = df_train
+    X_train = df_train[features]
 
-    categorical_indices = [X_train.columns.get_loc(col) for col in features if col in X_train.columns]
     experiment_id = get_or_create_experiment("wind_power_hyperparam_tuning")
     mlflow.set_experiment(experiment_id=experiment_id)
-    best_params_path = run_hyperopt(X_train, y_train, categorical_indices)
+    best_params_path = run_hyperopt(X_train, y_train)
     params = joblib.load(best_params_path)
-    cv_output_path = train_cv(X_train, y_train, categorical_indices, params)
+    print(params)
+    cv_output_path = train_cv(X_train, y_train)
     cv_results = pd.read_csv(cv_output_path)
 
     experiment_id = get_or_create_experiment("wind_power_full_training")
     mlflow.set_experiment(experiment_id=experiment_id)
-    model_path, model_params_path = train(X_train, y_train, categorical_indices, params, cv_results=cv_results)
+    model_path, model_params_path = train(X_train, y_train, params, cv_results=cv_results)
 
     cv_results = pd.read_csv(cv_output_path)
