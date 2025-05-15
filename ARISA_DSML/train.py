@@ -170,7 +170,6 @@ def train(X_train:pd.DataFrame, y_train:pd.DataFrame,
         # Model monitoring initialization
         reference_df = X_train.copy()
         reference_df["prediction"] = model.predict(X_train)
-        reference_df["predicted_probability"] = [p[1] for p in model.predict_proba(X_train)]
         reference_df[target] = y_train
         chunk_size = 50
 
@@ -179,15 +178,14 @@ def train(X_train:pd.DataFrame, y_train:pd.DataFrame,
             column_names=X_train.columns,
             chunk_size=chunk_size,
         )
-        udc.fit(reference_df.drop(columns=["prediction", target, "predicted_probability"]))
+        udc.fit(reference_df.drop(columns=["prediction", target]))
 
         # Confidence-based Performance Estimation for target
-        estimator = nml.CBPE(
-            problem_type="classification_binary",
-            y_pred_proba="predicted_probability",
+        # For regression, use RegressionPerformanceCalculator instead of CBPE
+        estimator = nml.PerformanceCalculator(
+            metric="mae",
             y_pred="prediction",
             y_true=target,
-            metrics=["roc_auc"],
             chunk_size=chunk_size,
         )
         estimator = estimator.fit(reference_df)
