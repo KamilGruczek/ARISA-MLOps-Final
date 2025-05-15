@@ -183,8 +183,9 @@ def train(X_train:pd.DataFrame, y_train:pd.DataFrame,
         # Confidence-based Performance Estimation for target
         # For regression, use RegressionPerformanceCalculator instead of CBPE
         estimator = nml.PerformanceCalculator(
-            metric="mae",
+            metrics=["mae"],
             y_pred="prediction",
+            problem_type="regression",
             y_true=target,
             chunk_size=chunk_size,
         )
