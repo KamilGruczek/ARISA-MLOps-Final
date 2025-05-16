@@ -140,9 +140,9 @@ def train(X_train:pd.DataFrame, y_train:pd.DataFrame,
         # Log the model
         model_info = mlflow.sklearn.log_model(
             sk_model=model,
-            artifact_path=artifact_name,
+            artifact_path="model",
             input_example=X_train,
-            registered_model_name=MODEL_NAME,
+            registered_model_name=MODEL_NAME
         )
 
         client = MlflowClient(mlflow.get_tracking_uri())
