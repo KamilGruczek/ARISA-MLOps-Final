@@ -56,9 +56,9 @@ if __name__=="__main__":
     run_data_dict = client.get_run(model_info.run_id).data.to_dictionary()
     run = client.get_run(model_info.run_id)
     log_model_meta = json.loads(run.data.tags['mlflow.log-model.history'])
-    log_model_meta[0]['signature']
     print(log_model_meta[0])
     logger.info(log_model_meta)
+    log_model_meta[0]['signature']
 
     _, artifact_folder = os.path.split(model_info.source)
     logger.info(artifact_folder)
