@@ -29,16 +29,12 @@ def predict(model:RandomForestRegressor, df_pred:pd.DataFrame, params:dict, prob
     feature_columns = params.pop("feature_columns")
 
     preds = model.predict(df_pred[feature_columns])
-    if probs:
-        df_pred["predicted_probability"] = [p[1] for p in model.predict_proba(df_pred[feature_columns])]
 
     plot_shap(model, df_pred[feature_columns])
     df_pred[target] = preds
     preds_path = MODELS_DIR / "preds.csv"
     if not probs:
         df_pred[["Time", target]].to_csv(preds_path, index=False)
-    else:
-        df_pred[["Time", target, "predicted_probability"]].to_csv(preds_path, index=False)
 
     return preds_path
 
@@ -55,16 +51,30 @@ if __name__=="__main__":
     # extract params/metrics data for run `test_run_id` in a single dict
     run_data_dict = client.get_run(model_info.run_id).data.to_dictionary()
     run = client.get_run(model_info.run_id)
-    log_model_meta = json.loads(run.data.tags['mlflow.log-model.history'])
-    print(log_model_meta[0])
-    logger.info(log_model_meta)
-    log_model_meta[0]['signature']
+
+    # Pobierz signature bezpośrednio z modelu MLflow, jeśli nie ma jej w tagach
+    try:
+        log_model_meta = json.loads(run.data.tags['mlflow.log-model.history'])
+        signature = log_model_meta[0].get('signature', None)
+    except (KeyError, IndexError, json.JSONDecodeError):
+        # Pobierz signature z modelu MLflow
+        model_artifact = mlflow.pyfunc.load_model(model_info.source)
+        signature = model_artifact.metadata.get_input_schema().to_dict() if model_artifact.metadata.get_input_schema() else None
+
+    if signature and 'inputs' in signature:
+        feature_columns = [inp["name"] for inp in signature['inputs']]
+    else:
+        # Fallback: użyj wszystkich kolumn poza targetem i Time
+        feature_columns = [col for col in df_test.columns if col not in [target, "Time"]]
+
+    params = run_data_dict.get("params", {})
+    params["feature_columns"] = feature_columns
 
     _, artifact_folder = os.path.split(model_info.source)
     logger.info(artifact_folder)
     model_uri = "runs:/{}/{}".format(model_info.run_id, artifact_folder)
     logger.info(model_uri)
-    loaded_model = mlflow.catboost.load_model(model_uri)
+    loaded_model = mlflow.pyfunc.load_model(model_uri)
 
     local_path = client.download_artifacts(model_info.run_id, "udc.pkl", "models")
     local_path = client.download_artifacts(model_info.run_id, "estimator.pkl", "models")
@@ -74,14 +84,13 @@ if __name__=="__main__":
     estimator = store.load(filename="estimator.pkl", as_type=nml.CBPE)
 
     params = run_data_dict["params"]
-    params["feature_columns"] = [inp["name"] for inp in json.loads(log_model_meta[0]['signature']['inputs'])]
+    params["feature_columns"] = [inp["name"] for inp in json.loads(signature['inputs'])]
     preds_path = predict(loaded_model, df_test, params, probs=True)
 
     df_preds = pd.read_csv(preds_path)
 
     analysis_df = df_test.copy()
     analysis_df["prediction"] = df_preds[target]
-    analysis_df["predicted_probability"] = df_preds["predicted_probability"]
 
     from ARISA_DSML.helpers import get_git_commit_hash
     git_hash = get_git_commit_hash()
@@ -90,8 +99,8 @@ if __name__=="__main__":
         estimated_performance = estimator.estimate(analysis_df)
         fig1 = estimated_performance.plot()
         mlflow.log_figure(fig1, "estimated_performance.png")
-        univariate_drift = udc.calculate(analysis_df.drop(columns=["prediction", "predicted_probability"], axis=1))
-        plot_col_names = analysis_df.drop(columns=["prediction", "predicted_probability"], axis=1).columns
+        univariate_drift = udc.calculate(analysis_df.drop(columns=["prediction"], axis=1))
+        plot_col_names = analysis_df.drop(columns=["prediction"], axis=1).columns
         for p in plot_col_names:
             try:
                 fig2 = univariate_drift.filter(column_names=[p]).plot()
