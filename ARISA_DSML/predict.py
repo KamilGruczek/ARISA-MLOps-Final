@@ -1,6 +1,7 @@
 from pathlib import Path
 import pandas as pd
 from loguru import logger
+import mlflow.sklearn
 import mlflow
 from mlflow.client import MlflowClient
 import json
@@ -58,7 +59,7 @@ if __name__=="__main__":
     logger.info(artifact_folder)
     model_uri = "runs:/{}/{}".format(model_info.run_id, artifact_folder)
     logger.info(model_uri)
-    loaded_model = mlflow.pyfunc.load_model(model_uri)
+    loaded_model = mlflow.sklearn.load_model(model_uri)
 
     local_path = client.download_artifacts(model_info.run_id, "udc.pkl", "models")
     local_path = client.download_artifacts(model_info.run_id, "estimator.pkl", "models")
@@ -68,7 +69,7 @@ if __name__=="__main__":
     estimator = store.load(filename="estimator.pkl", as_type=nml.PerformanceCalculator)
 
     params = run_data_dict["params"]
-    params["feature_columns"] = json.loads(log_model_meta['feature_columns'])
+    params["feature_columns"] = eval(log_model_meta['feature_columns'])
     preds_path = predict(loaded_model, df_test, params, probs=True)
 
     df_preds = pd.read_csv(preds_path)
