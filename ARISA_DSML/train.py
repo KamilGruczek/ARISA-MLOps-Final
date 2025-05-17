@@ -126,7 +126,7 @@ def train(X_train:pd.DataFrame, y_train:pd.DataFrame,
             X_train,
             y_train
         )
-        params["feature_columns"] = X_train.columns
+        params["feature_columns"] = list(X_train.columns)
         mlflow.log_params(params)
 
         MODELS_DIR.mkdir(parents=True, exist_ok=True)
