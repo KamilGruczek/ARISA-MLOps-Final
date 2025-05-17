@@ -51,24 +51,8 @@ if __name__=="__main__":
     # extract params/metrics data for run `test_run_id` in a single dict
     run_data_dict = client.get_run(model_info.run_id).data.to_dictionary()
     run = client.get_run(model_info.run_id)
-
-    # Pobierz signature bezpośrednio z modelu MLflow, jeśli nie ma jej w tagach
-    try:
-        log_model_meta = json.loads(run.data.tags['mlflow.log-model.history'])
-        signature = log_model_meta[0].get('signature', None)
-    except (KeyError, IndexError, json.JSONDecodeError):
-        # Pobierz signature z modelu MLflow
-        model_artifact = mlflow.pyfunc.load_model(model_info.source)
-        signature = model_artifact.metadata.get_input_schema().to_dict() if model_artifact.metadata.get_input_schema() else None
-
-    if signature and 'inputs' in signature:
-        feature_columns = [inp["name"] for inp in signature['inputs']]
-    else:
-        # Fallback: użyj wszystkich kolumn poza targetem i Time
-        feature_columns = [col for col in df_test.columns if col not in [target, "Time"]]
-
-    params = run_data_dict.get("params", {})
-    params["feature_columns"] = feature_columns
+    log_model_meta = json.loads(json.dumps(run.data.params))
+    log_model_meta
 
     _, artifact_folder = os.path.split(model_info.source)
     logger.info(artifact_folder)
@@ -81,10 +65,10 @@ if __name__=="__main__":
 
     store = nml.io.store.FilesystemStore(root_path=str(MODELS_DIR))
     udc = store.load(filename="udc.pkl", as_type=nml.UnivariateDriftCalculator)
-    estimator = store.load(filename="estimator.pkl", as_type=nml.CBPE)
+    estimator = store.load(filename="estimator.pkl", as_type=nml.PerformanceCalculator)
 
     params = run_data_dict["params"]
-    params["feature_columns"] = [inp["name"] for inp in json.loads(signature['inputs'])]
+    params["feature_columns"] = json.loads(log_model_meta['feature_columns'])
     preds_path = predict(loaded_model, df_test, params, probs=True)
 
     df_preds = pd.read_csv(preds_path)
