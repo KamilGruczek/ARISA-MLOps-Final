@@ -34,8 +34,7 @@ def predict(model:RandomForestRegressor, df_pred:pd.DataFrame, params:dict, prob
     plot_shap(model, df_pred[feature_columns])
     df_pred[target] = preds
     preds_path = MODELS_DIR / "preds.csv"
-    if not probs:
-        df_pred[["Time", target]].to_csv(preds_path, index=False)
+    df_pred[["Time", target]].to_csv(preds_path, index=False)
 
     return preds_path
 
