@@ -35,7 +35,7 @@ def run_hyperopt(X_train:pd.DataFrame, y_train:pd.DataFrame, test_size:float=0.2
         def objective(trial:optuna.trial.Trial)->float:
             with mlflow.start_run(nested=True):
                 params = {
-                    "n_estimators": trial.suggest_int("n_estimators", 10, 200, log=True),
+                    "n_estimators": trial.suggest_int("n_estimators", 2, 10, log=True),
                     "max_depth": trial.suggest_int("max_depth", 2, 32),
                     "min_samples_split": trial.suggest_int("min_samples_split", 2, 10),
                     "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 10),
@@ -79,7 +79,7 @@ def train_cv(X_train:pd.DataFrame, y_train:pd.DataFrame)->str|Path:
     """Do cross-validated training."""
 
     params = {
-        'n_estimators': [10, 100, 200],
+        'n_estimators': [2, 4, 10],
         'max_depth': [2, 10, 20, 30],
         'min_samples_split': [2, 5],
         'min_samples_leaf': [1, 2]
@@ -114,7 +114,7 @@ def train(X_train:pd.DataFrame, y_train:pd.DataFrame,
     with mlflow.start_run():
 
         model = RandomForestRegressor(
-            n_estimators=params.get("n_estimators", 100),
+            n_estimators=params.get("n_estimators", 10),
             max_depth=params.get("max_depth", 10),
             min_samples_split=params.get("min_samples_split", 2),
             min_samples_leaf=params.get("min_samples_leaf", 1),
