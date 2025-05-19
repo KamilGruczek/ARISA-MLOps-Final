@@ -80,7 +80,7 @@ if __name__=="__main__":
     git_hash = get_git_commit_hash()
     mlflow.set_experiment("wind_power_predictions")
     with mlflow.start_run(tags={"git_sha": get_git_commit_hash()}):
-        estimated_performance = estimator.estimate(analysis_df)
+        estimated_performance = estimator.calculate(analysis_df)
         fig1 = estimated_performance.plot()
         mlflow.log_figure(fig1, "estimated_performance.png")
         univariate_drift = udc.calculate(analysis_df.drop(columns=["prediction"], axis=1))
