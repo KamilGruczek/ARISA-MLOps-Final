@@ -13,6 +13,7 @@ import nannyml as nml
 import joblib
 import plotly.graph_objects as go
 
+from ARISA_DSML.helpers import get_git_commit_hash
 from ARISA_DSML.config import (
     FIGURES_DIR,
     MODEL_NAME,
@@ -21,8 +22,6 @@ from ARISA_DSML.config import (
     features,
     target,
 )
-
-from ARISA_DSML.helpers import get_git_commit_hash
 
 
 def run_hyperopt(X_train:pd.DataFrame, y_train:pd.DataFrame, test_size:float=0.25, n_trials:int=20, overwrite:bool=False)->str|Path:  # noqa: PLR0913
