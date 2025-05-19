@@ -17,7 +17,7 @@ def get_git_commit_hash():
         # Run git command in the notebooks directory
         commit_hash = subprocess.check_output(
             ["git", "rev-parse", "HEAD"],
-            cwd="..",  # Move up from the 'notebooks' folder to the repo root
+            cwd=".",  # Move up from the 'notebooks' folder to the repo root
             stderr=subprocess.DEVNULL
         ).decode("utf-8").strip()
         return commit_hash
