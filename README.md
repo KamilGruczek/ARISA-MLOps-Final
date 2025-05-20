@@ -25,16 +25,12 @@ mac or linux
 ```
 source .venv/bin/activate
 ```
-source .venv/bin/activate
-```
 and then open up notebook 01 and attempt to run the cells. 
 
 Another way to run project is:
 
 ```
 python -m ARISA_DSML.preproc
-```
 python -m ARISA_DSML.train
-```
 python -m ARISA_DSML.predict
 ```
